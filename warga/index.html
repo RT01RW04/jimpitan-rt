@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Laporan Jimpitan Ronda</title>
+<meta name="theme-color" content="#0B1220">
+<meta name="description" content="Laporan terbuka jimpitan ronda — bisa dilihat semua warga.">
+<style>
+:root{
+  --bg:#0B1220; --bg2:#0F1829; --card:#141F33; --card2:#1A2740; --line:#24334E;
+  --tx:#E9EFF9; --mut:#8CA0C0; --mut2:#64779A;
+  --grn:#22C55E; --grn-bg:rgba(34,197,94,.12);
+  --amb:#F6B23C; --amb-bg:rgba(246,178,60,.12);
+  --red:#F2545B; --blu:#49B6F5; --blu-bg:rgba(73,182,245,.12);
+  --r:16px; --r2:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--tx); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  padding:0 0 calc(34px + env(safe-area-inset-bottom)); -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px}
+header{
+  background:linear-gradient(180deg,#132138,#0F1829); border-bottom:1px solid var(--line);
+  padding:calc(18px + env(safe-area-inset-top)) 0 16px; margin-bottom:14px;
+}
+header .wrap{display:flex;align-items:center;gap:12px}
+.logo{width:46px;height:46px;flex:0 0 46px;border-radius:13px;background:var(--grn-bg);display:flex;align-items:center;justify-content:center}
+h1{font-size:19px;margin:0;line-height:1.25}
+.sub{color:var(--mut);font-size:13px;margin-top:2px}
+.stamp{
+  display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 11px;border-radius:999px;
+  background:var(--blu-bg);color:var(--blu);font-size:12px;font-weight:600;
+}
+.tabs{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto;padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+  color:var(--mut);font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+}
+.tab.on{background:var(--grn);border-color:var(--grn);color:#06240F}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:15px;margin-bottom:12px}
+.big{background:linear-gradient(135deg,#16351F,#133024);border-color:#1E5234}
+.big .lbl{color:#9BE3B5;font-size:11.5px;letter-spacing:.9px;font-weight:700;text-transform:uppercase}
+.big .num{font-size:33px;font-weight:800;letter-spacing:-.5px;margin-top:3px}
+.big .num small{font-size:15px;color:var(--mut);font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.mini{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:12px}
+.mini .l{color:var(--mut);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.mini .v{font-size:19px;font-weight:700;margin-top:3px}
+.sec{color:var(--mut2);font-size:11.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;margin:18px 0 8px}
+.li{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:0}
+.li .no{
+  flex:0 0 34px;height:34px;border-radius:10px;background:var(--card2);display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:12.5px;color:var(--mut)
+}
+.li .nm{flex:1;min-width:0}
+.li .nm b{display:block;font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .nm small{color:var(--mut2);font-size:11.5px}
+.li .rp{font-weight:700;font-size:14px;white-space:nowrap}
+.ok .no{background:var(--grn-bg);color:var(--grn)}
+.no-pay .no{background:var(--amb-bg);color:var(--amb)}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
+.pill.g{background:var(--grn-bg);color:var(--grn)}
+.pill.a{background:var(--amb-bg);color:var(--amb)}
+.bar{height:8px;border-radius:999px;background:var(--card2);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--grn),#4ADE80);border-radius:999px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.kv:last-child{border-bottom:0}
+.kv span{color:var(--mut)}
+.kv b{white-space:nowrap}
+.plus{color:var(--grn)} .minus{color:var(--red)}
+.night{display:flex;align-items:center;gap:10px;padding:7px 0}
+.night .d{flex:0 0 58px;color:var(--mut);font-size:12.5px}
+.night .t{flex:1;height:7px;background:var(--card2);border-radius:999px;overflow:hidden}
+.night .t i{display:block;height:100%;background:var(--grn)}
+.night .v{flex:0 0 auto;font-size:12.5px;font-weight:700}
+.empty{text-align:center;color:var(--mut2);padding:26px 10px;font-size:14px}
+.foot{color:var(--mut2);font-size:12px;text-align:center;line-height:1.7;margin-top:22px;padding:0 6px}
+.foot b{color:var(--mut)}
+.hid{display:none!important}
+#muat{text-align:center;padding:60px 20px;color:var(--mut)}
+.err{background:var(--amb-bg);border:1px solid #4A3B1C;color:#F7D9A4;border-radius:var(--r);padding:16px;line-height:1.65}
+.err h2{margin:0 0 7px;font-size:16px;color:var(--amb)}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  .tabs,.foot{display:none}
+  .card,.mini{border-color:#bbb;background:#fff;break-inside:avoid}
+  .big{background:#eef9f0}
+  .sec{color:#444}
+  section{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo">
+      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <path d="M7 12h10M7 9h10M7 15h6"/>
+      </svg>
+    </div>
+    <div style="min-width:0">
+      <h1 id="judul">Laporan Jimpitan Ronda</h1>
+      <div class="sub" id="alamat">memuat…</div>
+    </div>
+  </div>
+  <div class="wrap"><span class="stamp" id="stamp">⏱️ memuat…</span></div>
+</header>
+
+<div class="wrap">
+  <div id="muat">Memuat laporan…</div>
+
+  <div id="isi" class="hid">
+    <div class="tabs" id="tabs"></div>
+
+    <!-- ============ MALAM INI ============ -->
+    <section id="t-harian">
+      <div class="card big">
+        <div class="lbl">Jimpitan terkumpul</div>
+        <div class="num" id="h-total">Rp 0</div>
+        <div class="sub" id="h-tanggal" style="margin-top:4px"></div>
+        <div class="bar"><i id="h-bar" style="width:0%"></i></div>
+        <div class="sub" id="h-capai" style="margin-top:7px"></div>
+      </div>
+      <div class="grid">
+        <div class="mini"><div class="l">Sudah setor</div><div class="v" id="h-sudah">0</div></div>
+        <div class="mini"><div class="l">Belum setor</div><div class="v" id="h-belum">0</div></div>
+      </div>
+      <div class="sec">Sudah setor</div>
+      <div class="card" id="h-list-sudah"></div>
+      <div class="sec">Belum setor</div>
+      <div class="card" id="h-list-belum"></div>
+      <div id="h-borongan"></div>
+    </section>
+
+    <!-- ============ BULAN INI ============ -->
+    <section id="t-bulan" class="hid">
+      <div class="card big">
+        <div class="lbl">Total jimpitan bulan ini</div>
+        <div class="num" id="b-total">Rp 0</div>
+        <div class="sub" id="b-nama" style="margin-top:4px"></div>
+      </div>
+      <div class="grid">
+        <div class="mini"><div class="l">Malam ronda</div><div class="v" id="b-malam">0</div></div>
+        <div class="mini"><div class="l">Rata-rata / malam</div><div class="v" id="b-rata">Rp 0</div></div>
+      </div>
+      <div class="sec">Rincian per malam</div>
+      <div class="card" id="b-list"></div>
+    </section>
+
+    <!-- ============ KAS ============ -->
+    <section id="t-kas" class="hid">
+      <div class="card big">
+        <div class="lbl">Saldo kas ronda</div>
+        <div class="num" id="k-saldo">Rp 0</div>
+      </div>
+      <div class="card">
+        <div class="kv"><span>Saldo awal</span><b id="k-awal">Rp 0</b></div>
+        <div class="kv"><span>Jimpitan masuk</span><b class="plus" id="k-jimp">Rp 0</b></div>
+        <div class="kv"><span>Pemasukan lain</span><b class="plus" id="k-masuk">Rp 0</b></div>
+        <div class="kv"><span>Pengeluaran</span><b class="minus" id="k-keluar">Rp 0</b></div>
+        <div class="kv"><span><b>Saldo akhir</b></span><b id="k-akhir">Rp 0</b></div>
+      </div>
+      <div class="sec">Mutasi terakhir</div>
+      <div class="card" id="k-list"></div>
+    </section>
+
+    <!-- ============ PER RUMAH ============ -->
+    <section id="t-rumah" class="hid">
+      <div class="sec" style="margin-top:0">Keaktifan tiap rumah bulan ini</div>
+      <div class="card" id="r-list"></div>
+    </section>
+
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<script>
+/* =======================================================================
+   Halaman laporan terbuka untuk warga.
+   Datanya TIDAK disimpan di server mana pun. Dua sumber yang didukung:
+     1. Tertempel di tautan  →  .../warga/#z<data terkompresi>
+     2. Berkas yang diterbitkan pengurus  →  ../data/laporan.json
+   Jadi halaman ini tetap jalan di hosting statis seperti GitHub Pages.
+   ======================================================================= */
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  var HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+  function rp(n) {
+    n = Math.round(Number(n) || 0);
+    return 'Rp ' + n.toLocaleString('id-ID');
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function tglPanjang(s) {
+    var p = String(s || '').split('-'); if (p.length !== 3) return s || '';
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return HARI[d.getDay()] + ', ' + (+p[2]) + ' ' + BULAN[+p[1] - 1] + ' ' + p[0];
+  }
+  function tglPendek(s) {
+    var p = String(s || '').split('-'); if (p.length !== 3) return s || '';
+    return (+p[2]) + ' ' + BULAN[+p[1] - 1].slice(0, 3);
+  }
+  function namaBulan(s) {
+    var p = String(s || '').split('-'); if (p.length < 2) return s || '';
+    return BULAN[+p[1] - 1] + ' ' + p[0];
+  }
+  function waktu(iso) {
+    try {
+      var d = new Date(iso);
+      return tglPendek(d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2)) +
+        ' ' + d.getFullYear() + ', pukul ' + ('0' + d.getHours()).slice(-2) + '.' + ('0' + d.getMinutes()).slice(-2);
+    } catch (e) { return String(iso || ''); }
+  }
+
+  /* ---------- pembacaan data dari tautan ---------- */
+  function b64urlKeBytes(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bin = atob(s), arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
+  }
+  function bytesKeTeks(arr) { return new TextDecoder().decode(arr); }
+
+  async function dariHash(h) {
+    h = h.replace(/^#/, '');
+    if (!h) return null;
+    var mode = h.charAt(0), data = h.slice(1);
+    var bytes = b64urlKeBytes(data);
+    if (mode === 'z') {
+      if (!self.DecompressionStream) throw new Error('browser-lama');
+      var ds = new DecompressionStream('deflate-raw');
+      var buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
+      return JSON.parse(bytesKeTeks(new Uint8Array(buf)));
+    }
+    return JSON.parse(bytesKeTeks(bytes));
+  }
+
+  async function dariBerkas() {
+    var r = await fetch('../data/laporan.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('404');
+    return r.json();
+  }
+
+  /* ---------- penggambaran ---------- */
+  function barisRumah(no, nama, kanan, kelas, bawah) {
+    return '<div class="li ' + (kelas || '') + '">' +
+      '<div class="no">' + esc(no) + '</div>' +
+      '<div class="nm"><b>' + esc(nama) + '</b>' + (bawah ? '<small>' + esc(bawah) + '</small>' : '') + '</div>' +
+      (kanan ? '<div class="rp">' + kanan + '</div>' : '') + '</div>';
+  }
+  function kosong(t) { return '<div class="empty">' + esc(t) + '</div>'; }
+
+  function gambar(d) {
+    var s = d.rt || {};
+    var judul = 'Jimpitan Ronda' + (s.rt ? ' RT ' + s.rt : '') + (s.rw ? ' RW ' + s.rw : '');
+    document.title = judul;
+    $('#judul').textContent = judul;
+    $('#alamat').textContent = [s.kampung, s.kel, s.kec, s.kota].filter(Boolean).join(' · ') || 'Laporan terbuka untuk warga';
+    $('#stamp').textContent = '⏱️ Diperbarui ' + waktu(d.ts);
+
+    /* ---- harian ---- */
+    var h = d.h || { tot: 0, sudah: [], belum: [] };
+    var sudah = h.sudah || [], belum = h.belum || [];
+    var jml = sudah.length + belum.length;
+    var pct = jml ? Math.round(sudah.length / jml * 100) : 0;
+    $('#h-total').textContent = rp(h.tot);
+    $('#h-tanggal').textContent = tglPanjang(d.tgl);
+    $('#h-bar').style.width = pct + '%';
+    $('#h-capai').textContent = 'Tercapai ' + pct + '% — ' + sudah.length + ' dari ' + jml + ' rumah';
+    $('#h-sudah').textContent = sudah.length + ' rumah';
+    $('#h-belum').textContent = belum.length + ' rumah';
+    $('#h-list-sudah').innerHTML = sudah.length
+      ? sudah.map(function (x) { return barisRumah(x[0], x[1], rp(x[2]), 'ok', x[3] ? 'pukul ' + x[3] : ''); }).join('')
+      : kosong('Belum ada setoran yang tercatat.');
+    $('#h-list-belum').innerHTML = belum.length
+      ? belum.map(function (x) { return barisRumah(x[0], x[1], '', 'no-pay', ''); }).join('')
+      : kosong('Semua rumah sudah setor. 🎉');
+
+    var bor = (d.b && d.b.bor) || [];
+    $('#h-borongan').innerHTML = bor.length
+      ? '<div class="sec">Borongan bulanan ' + esc(namaBulan(d.bln)) + '</div><div class="card">' +
+        '<p style="margin:0 0 10px;color:var(--mut);font-size:13px">Dibayar langsung ke bendahara, di luar kas jimpitan harian.</p>' +
+        bor.map(function (x) {
+          return barisRumah(x[0], x[1], '<span class="pill ' + (x[2] ? 'g' : 'a') + '">' + (x[2] ? 'LUNAS' : 'BELUM') + '</span>',
+            x[2] ? 'ok' : 'no-pay', '');
+        }).join('') + '</div>'
+      : '';
+
+    /* ---- bulanan ---- */
+    var b = d.b || { tot: 0, malam: [] };
+    var malam = b.malam || [];
+    var maks = malam.reduce(function (a, x) { return Math.max(a, x[1] || 0); }, 0) || 1;
+    $('#b-total').textContent = rp(b.tot);
+    $('#b-nama').textContent = namaBulan(d.bln);
+    $('#b-malam').textContent = malam.length + ' malam';
+    $('#b-rata').textContent = rp(malam.length ? b.tot / malam.length : 0);
+    $('#b-list').innerHTML = malam.length
+      ? malam.map(function (x) {
+          return '<div class="night"><div class="d">' + esc(tglPendek(x[0])) + '</div>' +
+            '<div class="t"><i style="width:' + Math.round((x[1] || 0) / maks * 100) + '%"></i></div>' +
+            '<div class="v">' + rp(x[1]) + '</div></div>';
+        }).join('')
+      : kosong('Belum ada setoran bulan ini.');
+
+    /* ---- kas ---- */
+    var k = d.k || {};
+    $('#k-saldo').textContent = rp(k.saldo);
+    $('#k-awal').textContent = rp(k.awal);
+    $('#k-jimp').textContent = '+ ' + rp(k.jimp);
+    $('#k-masuk').textContent = '+ ' + rp(k.masuk);
+    $('#k-keluar').textContent = '− ' + rp(k.keluar);
+    $('#k-akhir').textContent = rp(k.saldo);
+    var mut = k.mut || [];
+    $('#k-list').innerHTML = mut.length
+      ? mut.map(function (x) {
+          var masuk = x[1] === 'masuk';
+          return '<div class="kv"><span>' + esc(tglPendek(x[0])) + ' · ' + esc(x[2]) + '</span>' +
+            '<b class="' + (masuk ? 'plus' : 'minus') + '">' + (masuk ? '+ ' : '− ') + rp(x[3]) + '</b></div>';
+        }).join('')
+      : kosong('Belum ada catatan pemasukan / pengeluaran.');
+
+    /* ---- per rumah ---- */
+    var pr = d.pr || [];
+    $('#r-list').innerHTML = pr.length
+      ? pr.map(function (x) {
+          var p = x[3] ? Math.round(x[2] / x[3] * 100) : 0;
+          return barisRumah(x[0], x[1], rp(x[4]), p >= 50 ? 'ok' : 'no-pay',
+            x[2] + ' dari ' + x[3] + ' malam · ' + p + '%');
+        }).join('')
+      : kosong('Belum ada data.');
+
+    /* ---- kaki ---- */
+    var ttd = [];
+    if (s.koor) ttd.push('Petugas ronda: <b>' + esc(s.koor) + '</b>');
+    if (s.bendahara) ttd.push('Bendahara: <b>' + esc(s.bendahara) + '</b>');
+    if (s.ketua) ttd.push('Ketua RT: <b>' + esc(s.ketua) + '</b>');
+    $('#foot').innerHTML = ttd.join('<br>') +
+      (ttd.length ? '<br><br>' : '') +
+      'Halaman ini dibuat otomatis oleh aplikasi <b>Jimpitan Ronda</b>.<br>' +
+      'Kalau ada catatan yang keliru, sampaikan ke pengurus RT.';
+
+    /* ---- tab ---- */
+    var daftar = [
+      ['harian', 'Malam ini'],
+      ['bulan', namaBulan(d.bln).split(' ')[0]],
+      ['kas', 'Kas'],
+      ['rumah', 'Per rumah']
+    ];
+    $('#tabs').innerHTML = daftar.map(function (t, i) {
+      return '<button class="tab' + (i === 0 ? ' on' : '') + '" data-t="' + t[0] + '">' + esc(t[1]) + '</button>';
+    }).join('');
+    $('#tabs').addEventListener('click', function (e) {
+      var b = e.target.closest('.tab'); if (!b) return;
+      [].forEach.call(document.querySelectorAll('.tab'), function (x) { x.classList.toggle('on', x === b); });
+      daftar.forEach(function (t) { $('#t-' + t[0]).classList.toggle('hid', t[0] !== b.dataset.t); });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('#muat').classList.add('hid');
+    $('#isi').classList.remove('hid');
+  }
+
+  function galat(judul, pesan) {
+    $('#stamp').textContent = '⚠️ tidak ada data';
+    $('#alamat').textContent = 'Laporan terbuka untuk warga';
+    $('#muat').innerHTML = '<div class="err"><h2>' + esc(judul) + '</h2>' + pesan + '</div>';
+  }
+
+  (async function () {
+    try {
+      var d = location.hash.length > 2 ? await dariHash(location.hash) : await dariBerkas();
+      if (!d || !d.v) throw new Error('format');
+      gambar(d);
+    } catch (e) {
+      var pesan = String(e && e.message);
+      if (pesan === '404') {
+        galat('Belum ada laporan yang diterbitkan',
+          'Pengurus RT belum mengunggah laporan ke halaman ini.<br><br>' +
+          'Biasanya laporan dibagikan lewat <b>tautan di grup WhatsApp RT</b> — ' +
+          'buka tautan itu supaya rinciannya muncul di sini.');
+      } else if (pesan === 'browser-lama') {
+        galat('Browser perlu diperbarui',
+          'Tautan laporan ini dipadatkan supaya pendek, dan browser versi lama belum bisa membukanya.<br><br>' +
+          'Silakan perbarui Chrome / Safari, atau buka tautannya di HP lain.');
+      } else {
+        galat('Tautan laporan tidak terbaca',
+          'Kemungkinan tautannya terpotong saat disalin dari WhatsApp.<br><br>' +
+          'Minta pengurus mengirim ulang tautannya, lalu buka dengan <b>menekan tautannya langsung</b> ' +
+          '(bukan menyalin sebagian teks).');
+      }
+    }
+  })();
+
+  window.addEventListener('hashchange', function () { location.reload(); });
+})();
+</script>
+</body>
+</html>
