@@ -265,3 +265,55 @@ pre.rep{white-space:pre-wrap;word-break:break-word;background:var(--card2);borde
 /* Safari iOS: cegah tarik-pantul & sorotan biru saat disentuh */
 html, body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
 input, textarea { -webkit-user-select: text; user-select: text; }
+
+/* ========================= LAYAR KUNCI PETUGAS ========================= */
+body.terkunci{overflow:hidden}
+.gembok{
+  position:fixed; inset:0; z-index:9000; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(170deg,#0C1526 0%,#0B1220 55%,#0A111E 100%);
+  padding:calc(20px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));
+  animation:gMasuk .22s ease-out;
+}
+@keyframes gMasuk{from{opacity:0}to{opacity:1}}
+.gembok.pergi{opacity:0;transition:opacity .25s ease}
+.gembok .g-isi{width:100%;max-width:330px;text-align:center}
+.gembok .g-ikon{
+  width:68px;height:68px;margin:0 auto 14px;border-radius:21px;background:var(--grn-bg);
+  display:flex;align-items:center;justify-content:center;border:1px solid rgba(34,197,94,.26);
+}
+.gembok h2{font-size:19px;margin:0 0 4px;letter-spacing:-.2px}
+.gembok .g-sub{color:var(--mut);font-size:13.5px;margin:0 0 20px}
+.gembok .g-titik{display:flex;gap:11px;justify-content:center;margin-bottom:12px;min-height:15px}
+.gembok .g-titik i{
+  width:13px;height:13px;border-radius:50%;background:transparent;
+  border:2px solid var(--line);transition:all .13s ease;
+}
+.gembok .g-titik i.opsi{width:9px;height:9px;align-self:center;opacity:.5}
+.gembok .g-titik i.isi{background:var(--grn);border-color:var(--grn);transform:scale(1.07)}
+.gembok .g-pesan{min-height:19px;font-size:12.5px;color:var(--mut);margin-bottom:12px}
+.gembok .g-pesan.merah{color:var(--red)}
+.gembok .g-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:16px}
+.gembok .g-t{
+  height:62px;border-radius:17px;border:1px solid var(--line);background:var(--card);
+  color:var(--tx);font:600 23px/1 inherit;cursor:pointer;transition:transform .07s ease,background .12s ease;
+  -webkit-user-select:none;user-select:none;
+}
+.gembok .g-t:active{transform:scale(.94);background:var(--card2)}
+.gembok .g-t.g-kecil{font-size:19px;color:var(--mut)}
+.gembok .g-t.g-ok{background:var(--grn);border-color:var(--grn);color:#06240F;font-size:22px}
+.gembok .g-ingat{
+  display:flex;align-items:center;gap:9px;justify-content:center;color:var(--mut);
+  font-size:12.5px;margin-bottom:14px;cursor:pointer;
+}
+.gembok .g-ingat input{width:17px;height:17px;accent-color:var(--grn)}
+.gembok .g-lupa{
+  background:none;border:0;color:var(--mut2);font-size:12.5px;text-decoration:underline;
+  cursor:pointer;padding:6px;font-family:inherit;
+}
+.gembok .g-pulih{text-align:left;margin-top:8px}
+.gembok .g-pulih .inp{text-align:center;font:700 19px/1.4 ui-monospace,monospace;letter-spacing:2px}
+.goyang{animation:goyang .33s}
+@keyframes goyang{
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)}
+  40%{transform:translateX(9px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
+}

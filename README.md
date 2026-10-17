@@ -1,6 +1,6 @@
 # 🌐 Menjadikan Jimpitan Ronda Online lewat GitHub
 
-Versi 1.7.0 · gratis selamanya · tanpa server, tanpa biaya bulanan
+Versi web 1.7.3 · gratis selamanya · tanpa server, tanpa biaya bulanan
 
 Sesudah langkah di panduan ini selesai, RT Bapak/Ibu punya **dua alamat web**:
 
@@ -102,6 +102,39 @@ Warga cukup **menekan tautan itu** — langsung terbuka halaman rapi berisi:
 
 ---
 
+## Bagian 3a — Nama petugas ronda ikut tercatat
+
+Saat menekan **Kirim WA**, aplikasi lebih dulu bertanya **“Siapa yang jaga malam ini?”** —
+isi **koordinator ronda** dan **anggota regu jaga** (dipisahkan koma), lalu tekan
+**Simpan & lanjut kirim**. Kalau sedang buru-buru ada tombol **Lewati, langsung kirim**.
+
+Nama itu ikut tampil di **teks WhatsApp**, di **halaman warga** (kartu *Petugas ronda malam ini*
+dan daftar *Petugas ronda tiap malam*), serta di **rekap bulanan** aplikasi sebagai catatan
+siapa jaga malam apa. Isian berikutnya sudah terisi otomatis dari malam sebelumnya, dan nama
+yang pernah bertugas muncul sebagai tombol cepat.
+
+> Tidak ingin ditanya tiap malam? Matikan **Atur → Tanya petugas ronda**.
+> Mau membetulkan nama malam lalu? Tab **Rekap → Bulanan → Petugas ronda tiap malam**, ketuk barisnya.
+
+---
+
+## Bagian 3b — Perbedaan versi web dan versi APK
+
+Versi web sengaja dibuat **sesederhana mungkin**: dibuka langsung, tanpa kunci, dan tautan
+laporannya berlaku selamanya.
+
+| | Versi web (panduan ini) | Aplikasi APK Android |
+|---|---|---|
+| Membuka aplikasi | **Langsung terbuka**, tanpa PIN | Bisa dikunci **PIN petugas** |
+| Masa berlaku tautan warga | **Selamanya** | Bisa diatur 1 / 3 / 7 / 30 hari |
+| Scan, rekap, kas, laporan WA, tautan warga | sama persis | sama persis |
+
+> Kalau Bapak memakai **dua-duanya** sekaligus: tautan yang dibuat dari **APK** tetap
+> menampilkan sisa masa berlakunya di halaman warga, sedangkan tautan yang dibuat dari **web**
+> tidak pernah kedaluwarsa. Halaman warga sudah dibuat mengerti keduanya.
+
+---
+
 ## Bagian 4 — Catatan privasi (mohon dibaca)
 
 - Repositori **Public** berarti **berkas aplikasinya** bisa dilihat siapa saja. Itu wajar — isinya memang hanya program, **bukan data warga**.
@@ -109,6 +142,7 @@ Warga cukup **menekan tautan itu** — langsung terbuka halaman rapi berisi:
 - Tautan laporan memang memuat **nama KK dan nominal setoran** — itu tujuannya, supaya transparan. Tapi tautan hanya sampai ke orang yang menerimanya di grup.
 - Yang **tidak pernah** ikut dibagikan: kode barcode tiap rumah, isi pengaturan, token, dan seluruh basis data mentah. *(Ini diuji otomatis setiap rilis.)*
 - Kalau ada warga keberatan namanya tampil, matikan saja **Sertakan rincian di WA** di tab Atur — laporan akan memuat angka totalnya saja.
+- Tautan laporan dari versi web **berlaku selamanya**. Kalau ingin tautan yang kedaluwarsa sendiri, pakai aplikasi **APK** (lihat tabel di Bagian 3b).
 
 ---
 
@@ -129,12 +163,57 @@ Perlu **token** sekali atur:
    Token hanya tampil sekali.
 5. Di aplikasi: **Atur → Halaman web untuk warga → Terbitkan otomatis**, isi:
    - Nama pengguna GitHub, Nama repositori (`jimpitan-rt`), dan **Token** tadi.
-6. Tekan **Terbitkan laporan sekarang** untuk mencoba. Kalau berhasil muncul *“✔ Laporan terbit di halaman warga”*.
-7. Nyalakan sakelar **Terbitkan tiap kirim laporan** supaya jalan sendiri tiap kali mengirim laporan WA.
+6. Nyalakan sakelar **Terbitkan otomatis**.
+7. Di bawahnya pilih **Perbarui selama ronda berjalan** → bawaannya **Tiap 10 menit** (lihat Bagian 5b).
+8. Tekan **Periksa sambungan** → semua baris harus bercentang hijau → **Uji kirim sekarang**.
+   Kalau berhasil muncul *“Berhasil ✔”*.
 
 > **Jaga tokennya seperti menjaga password.** Token tersimpan di HP itu saja.
 > Kalau HP hilang: buka GitHub → Settings → Developer settings → tekan **Revoke** pada token itu.
 > Fitur ini **sepenuhnya pilihan** — cara tautan di Bagian 3 tidak membutuhkan token sama sekali.
+
+---
+
+## Bagian 5b — Laporan ikut terbarui **selama ronda berjalan**
+
+Sesudah Bagian 5 diatur, pengurus **tidak perlu menekan apa pun lagi**. Begitu ada setoran
+baru tercatat, aplikasi menerbitkannya sendiri ke GitHub — jadi warga yang membuka alamat
+`.../warga/` sudah melihat angka malam itu sewaktu ronda **masih berjalan**.
+
+**Pilihan jeda** (Atur → *Perbarui selama ronda berjalan*):
+
+| Pilihan | Cocok untuk |
+|---|---|
+| **Tiap 10 menit** *(bawaan)* | RT biasa — warga melihat angka yang hampir langsung |
+| Tiap 15 / 30 menit | RT besar dengan setoran sangat ramai, atau jaringan lemah |
+| Hanya saat kirim laporan | Perilaku lama: terbit hanya waktu menekan *Kirim ke WhatsApp* |
+
+**Yang perlu dipahami:**
+
+- Aplikasi **tidak** mengirim tiap setoran satu per satu. Setoran dikumpulkan dulu, lalu
+  dikirim sekali tiap jeda di atas. Alasannya: GitHub hanya mau membangun ulang situs
+  **±10 kali per jam** — kalau terlalu rapat, justru tidak terbit sama sekali.
+- Kalau **tidak ada data baru**, tidak ada yang dikirim. Jadi tidak ada riwayat perubahan sampah.
+- Sesudah terkirim, GitHub masih perlu **±1 menit** membangun ulang situs. Jadi kalau baru
+  saja terbit lalu halaman warga masih menampilkan angka lama, tunggu sebentar — itu normal.
+- **Halaman warga menyegarkan dirinya sendiri tiap 1 menit.** Warga boleh membiarkan halaman
+  terbuka di HP; angkanya ikut naik sendiri (di pojok tertulis *“🔄 memperbarui sendiri tiap menit”*).
+- Lagi **tidak ada sinyal**? Aplikasi menunggu. Begitu internet kembali, laporan yang tertunda
+  langsung menyusul dikirim.
+- Kalau pernah **gagal**, aplikasi mencoba lagi sendiri 5 menit kemudian.
+
+**Melihat keadaannya:** di tab **Atur** bagian *Terbitkan otomatis* ada dua baris:
+
+| Baris | Artinya |
+|---|---|
+| **Terakhir terbit** | jam kiriman terakhir yang berhasil |
+| **Keadaan** · hijau *“Semua perubahan sudah terbit”* | beres, tidak ada yang tertunda |
+| **Keadaan** · biru *“Ada perubahan baru — terbit N menit lagi”* | sedang menunggu giliran, wajar |
+| **Keadaan** · kuning | ada yang belum diisi / sakelar mati / tidak ada sinyal |
+| **Keadaan** · merah *“Gagal: …”* | kiriman ditolak — tekan **Periksa sambungan** untuk tahu sebabnya |
+
+Tombol **Terbitkan sekarang** memaksa kirim saat itu juga (misal sesudah ronda bubar dan
+Bapak ingin angka finalnya langsung tampil).
 
 ---
 
@@ -148,7 +227,10 @@ Perlu **token** sekali atur:
 | Halaman warga bilang *Belum ada laporan diterbitkan* | Alamat dibuka tanpa tautan laporan, dan fitur Bagian 5 belum dipakai | Wajar. Buka lewat tautan dari grup WA, atau aktifkan Bagian 5 |
 | **Terbitkan** gagal: *Token ditolak* | Token salah ketik / sudah kedaluwarsa / dicabut | Buat token baru mengikuti Bagian 5 |
 | **Terbitkan** gagal: *Repositori tidak ditemukan* | Nama pengguna atau nama repositori salah ketik | Cocokkan persis dengan yang ada di alamat GitHub |
+| Angka di halaman warga **tidak ikut naik** saat ronda berjalan | Sakelar *Terbitkan otomatis* mati, pilihan jedanya *hanya saat kirim laporan*, atau token belum diisi | Atur → *Terbitkan otomatis* → tekan **Periksa sambungan**, perbaiki baris yang belum bercentang |
+| Baru saja terbit tapi halaman warga **masih angka lama** | GitHub sedang membangun ulang situs | Tunggu **±1 menit**, lalu muat ulang halaman. Bukan kerusakan |
 | Ingin ganti nama alamat | — | Settings → Repository name. Jangan lupa perbarui **Alamat situs RT** di aplikasi |
+| Warga bilang laporan **sudah kedaluwarsa** | Tautan itu dibuat dari aplikasi APK yang memakai batas waktu | Kirim tautan baru, atau ubah batasnya di APK: **Atur → Masa berlaku tautan laporan** |
 
 ---
 

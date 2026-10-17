@@ -1,7 +1,7 @@
 /* Service worker Jimpitan Ronda — agar aplikasi tetap jalan tanpa internet.
    Strategi: cache-first untuk semua berkas aplikasi (semuanya statis & offline). */
 
-var CACHE = 'jimpitan-v1.7.0';
+var CACHE = 'jimpitan-web-v1.7.3';
 var ASET = [
   './',
   './index.html',

@@ -87,12 +87,17 @@
         cadangNama: '',          /* nama berkas tujuan (tampilan saja) */
         webURL: '',              /* alamat situs warga, mis. https://nama.github.io/jimpitan-rt/ */
         ghUser: '', ghRepo: '', ghToken: '', ghBranch: 'main',
-        autoTerbit: false,       /* terbitkan ke web tiap kali kirim laporan */
+        autoTerbit: false,       /* terbitkan ke web saat kirim laporan */
+        terbitTiap: 10,          /* terbitkan berkala selama ronda berjalan (menit, 0 = mati) */
+        webTanda: '', webGalat: '',
+        linkHari: 7,             /* masa berlaku tautan laporan warga (0 = tanpa batas) */
+        pinHash: '', pinPulih: '', pinIngat: true,
         salam: 'Matur nuwun kagem Bapak/Ibu warga ingkang sampun paring jimpitan 🙏',
         siap: false,
+        tanyaPetugas: true,      /* tanya koordinator & regu jaga sebelum kirim laporan */
         tema: 'gelap', rincian: true, beruntun: true, suara: true, tampilBelum: true
       },
-      rumah: [], setor: [], kas: [], lunas: []
+      rumah: [], setor: [], kas: [], lunas: [], jaga: []
     };
   }
 
@@ -123,6 +128,7 @@
           }
         });
         d.kas = o.kas || [];
+        d.jaga = (o.jaga || []).filter(function (x) { return x && x.tgl; });
         return d;
       }
     } catch (e) { }
@@ -135,6 +141,8 @@
     _pb = null;
     try { localStorage.setItem(KEY, JSON.stringify(DB)); }
     catch (e) { toast('Penyimpanan penuh / gagal menyimpan'); }
+    /* setiap perubahan data ikut menjadwalkan penerbitan ke halaman warga */
+    try { if (typeof jadwalTerbit === 'function') jadwalTerbit(); } catch (e) { }
   }
   /* simpan langsung saat pertama kali dipasang supaya ID rumah tetap konsisten */
   try { if (!localStorage.getItem(KEY)) simpan(); } catch (e) { }
@@ -346,6 +354,13 @@
     h += '<div class="mini info saldo-row" data-act="keKas">' +
       '<div><div class="k">Saldo kas ronda hari ini</div><div class="v">' + rp(saldo()) + '</div></div>' +
       '<div class="pill b">lihat kas ›</div></div>';
+
+    var jgm = jagaTgl(tgl), adaJgm = adaJaga(jgm);
+    h += '<div class="mini ' + (adaJgm ? 'ok' : 'warn') + ' saldo-row" data-act="editJaga">' +
+      '<div style="min-width:0"><div class="k">Petugas ronda malam ini</div>' +
+      '<div class="v" style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+      (adaJgm ? esc(ringkasJaga(jgm)) : '<span style="font-size:14px;color:var(--mut)">belum diisi</span>') +
+      '</div></div><div class="pill ' + (adaJgm ? 'g' : 'a') + '">' + (adaJgm ? 'ubah ›' : 'isi ›') + '</div></div>';
 
     h += '<button class="btn btn-primary btn-block btn-scan" data-act="scanKumpul">' + I.scan + ' SCAN BARCODE</button>';
     h += '<div class="row-btn" style="margin-top:10px">' +
@@ -621,6 +636,25 @@
     });
     h += '</div>';
 
+    var jb = jagaBulan(bln);
+    h += '<div class="sec-title">Petugas ronda tiap malam</div>';
+    if (!jb.length) {
+      h += '<div class="card"><div class="empty"><p>Belum ada catatan petugas bulan ini.</p></div>' +
+        '<p class="note" style="margin:0 13px 13px">Nama petugas ditanyakan saat menekan <b>Kirim WA</b> di tab Ronda, ' +
+        'atau bisa diisi lewat baris <b>Petugas ronda malam ini</b>.</p></div>';
+    } else {
+      h += '<div class="list">';
+      jb.slice().reverse().forEach(function (x) {
+        var dd = parseISO(x.tgl), nreg = (x.regu || []).length;
+        h += '<div class="li tap" data-act="editJagaTgl" data-id="' + x.tgl + '">' +
+          '<div class="av">' + pad(dd.getDate()) + '</div>' +
+          '<div class="mid"><b>' + esc(x.koor || '(tanpa koordinator)') + '</b><small>' +
+          (nreg ? esc(x.regu.join(', ')) : 'tanpa anggota tercatat') + '</small></div>' +
+          '<div class="end"><span class="pill b">' + ((x.koor ? 1 : 0) + nreg) + ' org</span></div></div>';
+      });
+      h += '</div>';
+    }
+
     var rbl = rumahBulanan().slice().sort(urutRumah);
     if (rbl.length) {
       var lunasB = rbl.filter(function (r) { return lunasBulan(bln, r.id); });
@@ -754,7 +788,26 @@
       swc('beruntun', 'Scan beruntun', 'Kamera tetap menyala setelah berhasil scan', s.beruntun) +
       swc('suara', 'Bunyi & getar', 'Nada saat scan berhasil / gagal', s.suara) +
       swc('rincian', 'Sertakan rincian di WA', 'Tampilkan daftar nama di laporan WhatsApp', s.rincian) +
+      swc('tanyaPetugas', 'Tanya petugas ronda', 'Isi koordinator & regu jaga tiap kirim laporan', s.tanyaPetugas !== false) +
       '</div>';
+
+    if (FITUR_KUNCI) {
+    h += '<div class="sec-title">Keamanan</div><div class="card">';
+    if (kunciAktif()) {
+      h += '<div class="kv"><span>Kunci PIN petugas</span><b style="color:var(--grn)">Aktif</b></div>' +
+        swc('pinIngat', 'Ingat 12 jam', 'Tidak ditanya PIN lagi selama 12 jam di HP ini', s.pinIngat) +
+        '<div class="row-btn" style="margin-top:10px">' +
+        '<button class="btn" data-act="pasangPin">Ganti PIN</button>' +
+        '<button class="btn" data-act="kunciSekarang">Kunci sekarang</button></div>' +
+        '<button class="btn btn-block" style="margin-top:9px" data-act="kodePulihBaru">Buat kode pemulihan baru</button>' +
+        '<button class="btn btn-danger btn-block" style="margin-top:9px" data-act="matikanPin">Matikan kunci PIN</button>';
+    } else {
+      h += '<p class="note" style="margin:0 0 10px">Supaya catatan jimpitan tidak bisa diutak-atik orang lain ' +
+        'saat HP dipegang bergantian antar petugas ronda.</p>' +
+        '<button class="btn btn-primary btn-block" data-act="pasangPin">Pasang PIN petugas</button>';
+    }
+    h += '</div>';
+    }
 
     h += '<div class="sec-title">Halaman web untuk warga</div><div class="card">' +
       '<p class="note" style="margin:0 0 10px">Laporan bisa dibuka warga lewat <b>tautan di grup WA</b> — ' +
@@ -762,6 +815,14 @@
       '<div class="field"><label>Alamat situs RT</label>' +
       '<input class="inp" data-set="webURL" placeholder="https://namaanda.github.io/jimpitan-rt/" value="' + esc(s.webURL || '') + '"></div>';
     if (alamatWarga()) {
+      var pilHari = [[1, '1 hari'], [3, '3 hari'], [7, '7 hari'], [30, '30 hari'], [0, 'Tanpa batas']];
+      if (FITUR_KUNCI) h += '<div class="field" style="margin-top:10px"><label>Masa berlaku tautan laporan</label>' +
+        '<select class="inp" data-set="linkHari">' +
+        pilHari.map(function (x) {
+          return '<option value="' + x[0] + '"' + (Number(s.linkHari) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>';
+        }).join('') + '</select></div>' +
+        '<p class="note" style="margin-top:0">Lewat batas itu, tautan lama menolak tampil dan warga diminta meminta tautan baru. ' +
+        'Berguna supaya rekap lama tidak beredar terus di luar grup.</p>';
       h += '<div class="kv"><span>Halaman warga</span><b style="color:var(--grn);word-break:break-all">' + esc(alamatWarga()) + '</b></div>' +
         '<div class="row-btn" style="margin-top:10px">' +
         '<button class="btn" data-act="salinLinkWarga">Salin tautan</button>' +
@@ -778,9 +839,19 @@
         '<input class="inp" data-set="ghRepo" placeholder="jimpitan-rt" value="' + esc(s.ghRepo || '') + '"></div>' +
         '<div class="field" style="margin-bottom:8px"><label>Token GitHub</label>' +
         '<input class="inp" type="password" data-set="ghToken" placeholder="github_pat_…" value="' + esc(s.ghToken || '') + '"></div>' +
-        swc('autoTerbit', 'Terbitkan tiap kirim laporan', 'Otomatis saat menekan Kirim ke WhatsApp', s.autoTerbit) +
-        '<button class="btn btn-block" style="margin-top:10px" data-act="terbitSekarang">Terbitkan laporan sekarang</button>' +
-        (s.webTerbit ? '<p class="note">Terakhir diterbitkan: <b>' + esc(waktuSingkat(s.webTerbit)) + '</b></p>' : '') +
+        swc('autoTerbit', 'Terbitkan otomatis', 'Perbarui halaman warga sendiri', s.autoTerbit) +
+        '<div class="field" style="margin-top:10px"><label>Perbarui selama ronda berjalan</label>' +
+        '<select class="inp" data-set="terbitTiap">' +
+        [[0, 'Hanya saat kirim laporan'], [10, 'Tiap 10 menit'], [15, 'Tiap 15 menit'], [30, 'Tiap 30 menit']]
+          .map(function (x) {
+            return '<option value="' + x[0] + '"' + (Number(s.terbitTiap) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>';
+          }).join('') + '</select></div>' +
+        '<p class="note" style="margin-top:0">Tiap ada setoran baru, laporan di web ikut diperbarui — paling cepat satu kali tiap jeda di atas. ' +
+        'GitHub hanya membangun ulang situs ±10 kali per jam, jadi jangan terlalu rapat.</p>' +
+        statusTerbit() +
+        '<div class="row-btn" style="margin-top:10px">' +
+        '<button class="btn" data-act="terbitSekarang">Terbitkan sekarang</button>' +
+        '<button class="btn" data-act="periksaTerbit">Periksa sambungan</button></div>' +
         '</div>';
     }
     h += '</div>';
@@ -806,7 +877,7 @@
     h += '<div class="sec-title">Tentang</div><div class="card">' +
       '<div class="kv"><span>Aplikasi</span><b>Jimpitan Ronda</b></div>' +
       '<div class="kv"><span>Wilayah</span><b>RT ' + esc(s.rt) + ' / RW ' + esc(s.rw) + ' ' + esc(s.kampung) + '</b></div>' +
-      '<div class="kv"><span>Versi</span><b>' + esc(A && A.appVersion ? A.appVersion() : '1.7.0') +
+      '<div class="kv"><span>Versi</span><b>' + esc(A && A.appVersion ? A.appVersion() : '1.7.3 (web)') +
       (A ? '' : (IOS ? ' · iPhone' : ' · web')) + '</b></div>' +
       '<div class="kv"><span>Data tersimpan</span><b>' + DB.rumah.length + ' rumah · ' + DB.setor.length + ' setoran</b></div>' +
       '<div class="kv"><span>Cara setor</span><b>' + DB.rumah.filter(function (r) { return !isBulanan(r); }).length +
@@ -823,7 +894,7 @@
     $$('[data-set]').forEach(function (el) {
       el.addEventListener('change', function () {
         var k = el.getAttribute('data-set');
-        var numerik = (k === 'saldoAwal' || k === 'nominalDefault');
+        var numerik = (k === 'saldoAwal' || k === 'nominalDefault' || k === 'linkHari' || k === 'terbitTiap');
         if (k === 'prefiks') {
           DB.set.prefiks = (el.value || 'JMP').toUpperCase().replace(/[^A-Z0-9]/g, '') || 'JMP';
           el.value = DB.set.prefiks;
@@ -872,6 +943,64 @@
     return t;
   }
 
+  /* ===================== PETUGAS RONDA PER MALAM =====================
+     Tiap malam ronda dijaga orang yang berbeda. Nama koordinator + anggota regu
+     dicatat per tanggal, lalu ikut tampil di laporan WA, halaman warga, dan rekap. */
+  function jagaTgl(tgl) {
+    var j = null;
+    (DB.jaga || []).forEach(function (x) { if (x.tgl === tgl) j = x; });
+    return j;
+  }
+
+  function pisahNama(teks) {
+    return String(teks || '').split(/[\n,;]+/).map(function (x) {
+      return x.replace(/\s+/g, ' ').trim();
+    }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; });
+  }
+
+  function simpanJaga(tgl, koor, regu) {
+    koor = String(koor || '').replace(/\s+/g, ' ').trim();
+    regu = (regu || []).filter(Boolean);
+    if (!DB.jaga) DB.jaga = [];
+    var j = jagaTgl(tgl);
+    if (!koor && !regu.length) {
+      DB.jaga = DB.jaga.filter(function (x) { return x.tgl !== tgl; });
+    } else if (j) { j.koor = koor; j.regu = regu; j.ts = Date.now(); }
+    else DB.jaga.push({ tgl: tgl, koor: koor, regu: regu, ts: Date.now() });
+    simpan();
+  }
+
+  function adaJaga(j) { return !!(j && (j.koor || (j.regu || []).length)); }
+
+  function ringkasJaga(j) {
+    if (!adaJaga(j)) return '';
+    var n = (j.regu || []).length;
+    return (j.koor || '(tanpa koordinator)') + (n ? ' + ' + n + ' anggota' : '');
+  }
+
+  /* nama yang pernah bertugas — untuk tombol cepat di layar isian */
+  function namaPernahJaga() {
+    var out = [], tambah = function (x) { if (x && out.indexOf(x) < 0) out.push(x); };
+    (DB.jaga || []).slice().sort(function (a, b) { return a.tgl < b.tgl ? 1 : -1; })
+      .slice(0, 12).forEach(function (j) { tambah(j.koor); (j.regu || []).forEach(tambah); });
+    if (DB.set.koor) tambah(DB.set.koor);
+    return out.slice(0, 10);
+  }
+
+  function teksJaga(tgl) {
+    var j = jagaTgl(tgl);
+    if (!adaJaga(j)) return DB.set.koor ? '\n🧑‍🤝‍🧑 Petugas ronda: ' + DB.set.koor + '\n' : '';
+    var t = '\n*🧑‍🤝‍🧑 PETUGAS RONDA MALAM INI*\n';
+    if (j.koor) t += 'Koordinator : ' + j.koor + '\n';
+    if ((j.regu || []).length) t += 'Anggota : ' + j.regu.join(', ') + '\n';
+    return t;
+  }
+
+  function jagaBulan(bln) {
+    return (DB.jaga || []).filter(function (x) { return String(x.tgl).indexOf(bln) === 0 && adaJaga(x); })
+      .sort(function (a, b) { return a.tgl < b.tgl ? -1 : 1; });
+  }
+
   function lapHarian(tgl) {
     var per = periodeDari(tgl);
     var rs = rumahHarian().slice().sort(urutRumah);
@@ -911,7 +1040,7 @@
         t += (lunasBulan(per, r.id) ? '✅ ' : '⬜ ') + r.no + '. ' + r.nama + '\n';
       });
     }
-    if (DB.set.koor) t += '\n🧑‍🤝‍🧑 Petugas ronda: ' + DB.set.koor + '\n';
+    t += teksJaga(tgl);
     return t + kaki();
   }
 
@@ -937,6 +1066,16 @@
         t += (lunasBulan(bln, r.id) ? '✅ ' : '⬜ ') + r.no + '. ' + r.nama + '\n';
       });
     }
+    var jb = jagaBulan(bln);
+    if (jb.length) {
+      t += '\n*🧑‍🤝‍🧑 PETUGAS RONDA TIAP MALAM*\n';
+      jb.forEach(function (x) {
+        var dd = parseISO(x.tgl);
+        t += pad(dd.getDate()) + '/' + pad(dd.getMonth() + 1) + ' — ' + (x.koor || '-') +
+          ((x.regu || []).length ? ' (+' + x.regu.length + ')' : '') + '\n';
+      });
+    }
+
     t += '\n*RINGKASAN KAS*\n';
     t += 'Saldo awal : ' + rp(DB.set.saldoAwal) + '\n';
     t += 'Jimpitan masuk : ' + rp(totalSemuaJimpitan()) + '\n';
@@ -988,6 +1127,46 @@
     return t;
   }
 
+  /* layar isian petugas ronda; kalau `lanjut` diisi, sesudah disimpan langsung ke pratinjau WA */
+  var _jagaTgl = '', _namaJaga = [];
+  function sheetPetugas(tgl, lanjut) {
+    _jagaTgl = tgl;
+    _namaJaga = namaPernahJaga();
+    var j = jagaTgl(tgl) || { koor: '', regu: [] };
+    var koor = j.koor || (adaJaga(j) ? '' : (DB.set.koor || ''));
+
+    var h = '<p class="note" style="margin:0 0 12px">Nama ini ikut tercantum di <b>laporan WhatsApp</b>, ' +
+      '<b>halaman web warga</b>, dan <b>rekap bulanan</b>. Boleh dikosongkan.</p>' +
+      '<div class="field"><label>Koordinator ronda — ' + esc(tglPendek(tgl)) + '</label>' +
+      '<input class="inp" id="jKoor" value="' + esc(koor) + '" placeholder="nama koordinator malam ini"></div>' +
+      '<div class="field"><label>Anggota regu jaga (pisahkan dengan koma)</label>' +
+      '<textarea class="inp" id="jRegu" placeholder="mis. Pak Slamet, Pak Tono, Mas Agus">' +
+      esc((j.regu || []).join(', ')) + '</textarea></div>';
+
+    if (_namaJaga.length) {
+      h += '<label style="display:block;font-size:12px;font-weight:650;color:var(--mut);margin:2px 0 6px">' +
+        'Pernah bertugas — ketuk untuk menambah ke anggota</label><div class="chips">' +
+        _namaJaga.map(function (nm, i) {
+          return '<button class="chip" data-act="jagaTambah" data-id="' + i + '">+ ' + esc(nm) + '</button>';
+        }).join('') + '</div>';
+    }
+
+    h += '<button class="btn btn-primary btn-block" data-act="jagaSimpan">' +
+      (lanjut ? I.wa + ' Simpan &amp; lanjut kirim' : 'Simpan') + '</button>';
+    h += lanjut
+      ? '<button class="btn btn-block" style="margin-top:9px" data-act="jagaLewati">Lewati, langsung kirim</button>'
+      : '<button class="btn btn-block" style="margin-top:9px" data-act="tutupSheet">Batal</button>';
+
+    window.__lanjutKirim = lanjut || null;
+    sheet(lanjut ? 'Siapa yang jaga malam ini?' : 'Petugas ronda ' + tglPendek(tgl), h);
+  }
+
+  /* tanya petugas dulu, baru buka pratinjau laporan */
+  function tanyaPetugasLalu(tgl, lanjut) {
+    if (DB.set.tanyaPetugas === false) return lanjut();
+    sheetPetugas(tgl, lanjut);
+  }
+
   function pratinjauKirim(judul, teks, tgl) {
     window.__teksLaporan = teks;
     window.__linkLaporan = '';
@@ -1023,6 +1202,205 @@
     });
   }
 
+  /* ========================= KUNCI PETUGAS (PIN) =========================
+     PIN bersama untuk petugas ronda. Yang disimpan hanya SIDIK (hash) PIN-nya,
+     bukan angkanya — jadi PIN tidak bisa dibaca ulang dari penyimpanan HP.
+     Sifatnya mengunci perangkat petugas, bukan alamat webnya. */
+
+  var K_SESI = 'jimpitan_sesi_buka';
+  var K_SAMPAI = 'jimpitan_buka_sampai';
+
+  function sidik(teks) {
+    var data = new TextEncoder().encode('jimpitan|' + teks);
+    if (self.crypto && crypto.subtle && crypto.subtle.digest) {
+      return crypto.subtle.digest('SHA-256', data)
+        .then(function (buf) { return b64url(new Uint8Array(buf)); })
+        .catch(function () { return 'x' + sidikRingan(teks); });
+    }
+    return Promise.resolve('x' + sidikRingan(teks));
+  }
+  /* cadangan bila crypto.subtle tidak ada (mis. dibuka lewat file://) */
+  function sidikRingan(t) {
+    var h1 = 0x811c9dc5, h2 = 0x1000193, i;
+    t = 'jimpitan|' + t;
+    for (i = 0; i < t.length; i++) {
+      h1 = (h1 ^ t.charCodeAt(i)) >>> 0; h1 = (h1 * 0x01000193) >>> 0;
+      h2 = (h2 + t.charCodeAt(i) * (i + 7)) >>> 0;
+    }
+    return h1.toString(36) + h2.toString(36);
+  }
+
+  /* Kunci PIN dan masa berlaku tautan HANYA berlaku di aplikasi Android (APK).
+     Versi web sengaja dibiarkan seperti 1.7.0: terbuka langsung, tautan tanpa batas waktu. */
+  var FITUR_KUNCI = !!A;
+
+  function kunciAktif() { return FITUR_KUNCI && !!DB.set.pinHash; }
+
+  function sesiTerbuka() {
+    if (!FITUR_KUNCI || !kunciAktif()) return true;
+    try {
+      if (sessionStorage.getItem(K_SESI) === '1') return true;
+      var sampai = Number(localStorage.getItem(K_SAMPAI) || 0);
+      if (sampai && Date.now() < sampai) return true;
+    } catch (e) { }
+    return false;
+  }
+  function tandaiTerbuka(ingat) {
+    try {
+      sessionStorage.setItem(K_SESI, '1');
+      if (ingat) localStorage.setItem(K_SAMPAI, String(Date.now() + 12 * 3600 * 1000));
+    } catch (e) { }
+  }
+  function kunciLagi() {
+    try { sessionStorage.removeItem(K_SESI); localStorage.removeItem(K_SAMPAI); } catch (e) { }
+    tutupSheet(); tampilkanGembok();
+  }
+
+  function kodePulih() {
+    var huruf = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', out = '';
+    for (var i = 0; i < 8; i++) {
+      out += huruf.charAt(Math.floor(Math.random() * huruf.length));
+      if (i === 3) out += '-';
+    }
+    return out;
+  }
+
+  /* ---------- layar gembok ---------- */
+  var _gBuf = '', _gSalah = 0, _gTunggu = 0, _gTimer = null, _gPulih = false;
+
+  function tampilkanGembok() {
+    var el = $('#gembok');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'gembok'; el.className = 'gembok';
+      document.body.appendChild(el);
+    }
+    _gBuf = ''; _gPulih = false;
+    gambarGembok();
+    el.classList.remove('pergi');
+    document.body.classList.add('terkunci');
+  }
+
+  function gambarGembok() {
+    var pad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'hapus', '0', 'ok'];
+    var h = '<div class="g-isi">' +
+      '<div class="g-ikon">' +
+      '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round">' +
+      '<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>' +
+      '<h2>' + esc(labelRT() || 'Jimpitan Ronda') + '</h2>' +
+      '<p class="g-sub">Masukkan PIN petugas ronda</p>';
+
+    if (_gPulih) {
+      h += '<div class="g-pulih">' +
+        '<input class="inp" id="gKode" placeholder="XXXX-XXXX" autocapitalize="characters" autocomplete="off">' +
+        '<button class="btn btn-primary btn-block" style="margin-top:10px" data-g="pakaiKode">Buka dengan kode pemulihan</button>' +
+        '<button class="btn btn-block" style="margin-top:8px" data-g="batalPulih">Kembali ke PIN</button>' +
+        '<p class="note" style="text-align:center">Kode pemulihan diberikan sewaktu PIN dipasang. ' +
+        'Kalau ikut hilang, satu-satunya jalan adalah memulihkan data dari berkas cadangan di HP lain.</p>' +
+        '</div></div>';
+      $('#gembok').innerHTML = h;
+      return;
+    }
+
+    h += '<div class="g-titik">';
+    for (var i = 0; i < 8; i++) h += '<i class="' + (i < _gBuf.length ? 'isi' : '') + (i < 4 ? '' : ' opsi') + '"></i>';
+    h += '</div>';
+    h += '<div class="g-pesan" id="gPesan"></div>';
+    h += '<div class="g-pad">';
+    pad.forEach(function (t) {
+      if (t === 'hapus') h += '<button class="g-t g-kecil" data-g="hapus" aria-label="hapus">⌫</button>';
+      else if (t === 'ok') h += '<button class="g-t g-ok" data-g="ok" aria-label="buka">✓</button>';
+      else h += '<button class="g-t" data-g="' + t + '">' + t + '</button>';
+    });
+    h += '</div>';
+    h += '<label class="g-ingat"><input type="checkbox" id="gIngat"' + (DB.set.pinIngat ? ' checked' : '') + '> ' +
+      'Jangan tanya lagi 12 jam di HP ini</label>';
+    h += '<button class="g-lupa" data-g="lupa">Lupa PIN?</button>';
+    h += '</div>';
+    $('#gembok').innerHTML = h;
+    if (_gTunggu > Date.now()) tungguMundur();
+  }
+
+  function pesanGembok(t, merah) {
+    var el = $('#gPesan'); if (!el) return;
+    el.textContent = t || '';
+    el.className = 'g-pesan' + (merah ? ' merah' : '');
+  }
+
+  function tungguMundur() {
+    clearInterval(_gTimer);
+    _gTimer = setInterval(function () {
+      var sisa = Math.ceil((_gTunggu - Date.now()) / 1000);
+      if (sisa <= 0) { clearInterval(_gTimer); pesanGembok(''); _gSalah = 0; return; }
+      pesanGembok('Terlalu banyak percobaan — tunggu ' + sisa + ' detik', true);
+    }, 300);
+  }
+
+  function cobaBuka() {
+    if (_gTunggu > Date.now()) return;
+    if (_gBuf.length < 4) { pesanGembok('PIN minimal 4 angka', true); return; }
+    var pin = _gBuf;
+    sidik(pin).then(function (hs) {
+      if (hs === DB.set.pinHash) {
+        var ingat = $('#gIngat') && $('#gIngat').checked;
+        DB.set.pinIngat = !!ingat; simpan();
+        tandaiTerbuka(ingat);
+        lepasGembok();
+        return;
+      }
+      _gBuf = ''; _gSalah++;
+      vib(90); gambarGembok();
+      if (_gSalah >= 5) { _gTunggu = Date.now() + 30000; tungguMundur(); }
+      else pesanGembok('PIN salah — percobaan ke-' + _gSalah, true);
+      var el = $('#gembok .g-isi');
+      if (el) { el.classList.remove('goyang'); void el.offsetWidth; el.classList.add('goyang'); }
+    });
+  }
+
+  function lepasGembok() {
+    var el = $('#gembok');
+    if (el) { el.classList.add('pergi'); setTimeout(function () { el.remove(); }, 260); }
+    document.body.classList.remove('terkunci');
+    _gBuf = ''; _gSalah = 0;
+    render();
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-g]') : null;
+    if (!b) return;
+    var g = b.getAttribute('data-g');
+    e.preventDefault();
+    if (/^[0-9]$/.test(g)) {
+      if (_gTunggu > Date.now() || _gBuf.length >= 8) return;
+      _gBuf += g; vib(18); gambarGembok();
+      if (_gBuf.length === 8) cobaBuka();
+      return;
+    }
+    if (g === 'hapus') { _gBuf = _gBuf.slice(0, -1); gambarGembok(); return; }
+    if (g === 'ok') { cobaBuka(); return; }
+    if (g === 'lupa') { _gPulih = true; gambarGembok(); return; }
+    if (g === 'batalPulih') { _gPulih = false; _gBuf = ''; gambarGembok(); return; }
+    if (g === 'pakaiKode') {
+      var k = ($('#gKode') && $('#gKode').value || '').toUpperCase().replace(/\s/g, '');
+      sidik(k).then(function (hs) {
+        if (hs && hs === DB.set.pinPulih) {
+          tandaiTerbuka(false); lepasGembok();
+          setTimeout(function () { ACT.pasangPin(true); }, 400);
+          toast('Kode diterima — silakan pasang PIN baru');
+        } else { vib(90); toast('Kode pemulihan tidak cocok'); }
+      });
+      return;
+    }
+  });
+
+  /* keyboard untuk pemakaian di komputer */
+  document.addEventListener('keydown', function (e) {
+    if (!$('#gembok') || _gPulih) return;
+    if (/^[0-9]$/.test(e.key)) { if (_gBuf.length < 8) { _gBuf += e.key; gambarGembok(); } }
+    else if (e.key === 'Backspace') { _gBuf = _gBuf.slice(0, -1); gambarGembok(); }
+    else if (e.key === 'Enter') cobaBuka();
+  });
+
   /* ========================= LAPORAN WEB UNTUK WARGA =========================
      Dua cara, dua-duanya jalan di hosting statis seperti GitHub Pages:
        1. TAUTAN  — seluruh isi laporan dipadatkan lalu ditempel di belakang #
@@ -1037,7 +1415,7 @@
   }
 
   /* ringkasan yang boleh dilihat umum — tidak memuat token, kode barcode, atau pengaturan */
-  function snapshotWarga(tgl) {
+  function snapshotWarga(tgl, abadi) {
     tgl = tgl || S.tgl;
     var bln = periodeDari(tgl), st = DB.set;
     var rs = rumahHarian().slice().sort(urutRumah);
@@ -1059,22 +1437,31 @@
     });
     var malam = hariDiBulan(bln);
 
+    var hari = FITUR_KUNCI ? Number(DB.set.linkHari) : 0;   /* web: tautan tanpa batas waktu */
+    if (isNaN(hari)) hari = 7;
     return {
       v: 1,
       ts: new Date().toISOString(),
+      /* tautan kedaluwarsa otomatis; laporan yang diterbitkan ke web bersifat tetap */
+      exp: (abadi || !hari) ? 0 : Date.now() + hari * 86400000,
+      hari: abadi ? 0 : hari,
       tgl: tgl,
       bln: bln,
       rt: {
         rt: st.rt, rw: st.rw, kampung: st.kampung, kel: st.kel, kec: st.kec, kota: st.kota,
         ketua: st.ketua, bendahara: st.bendahara, koor: st.koor
       },
-      h: { tot: totalTgl(tgl), sudah: sudah, belum: belum },
+      h: {
+        tot: totalTgl(tgl), sudah: sudah, belum: belum,
+        jg: (function () { var j = jagaTgl(tgl); return adaJaga(j) ? { koor: j.koor || '', regu: j.regu || [] } : null; })()
+      },
       b: {
         tot: malam.reduce(function (a, x) { return a + x.total; }, 0),
         malam: malam.map(function (x) { return [x.tgl, x.total]; }),
         bor: rumahBulanan().slice().sort(urutRumah).map(function (r) {
           return [r.no, r.nama, lunasBulan(bln, r.id) ? 1 : 0];
-        })
+        }),
+        jg: jagaBulan(bln).map(function (x) { return [x.tgl, x.koor || '', (x.regu || []).join(', ')]; })
       },
       k: {
         awal: Number(st.saldoAwal) || 0, jimp: totalSemuaJimpitan(),
@@ -1154,6 +1541,108 @@
     return b64url(new TextEncoder().encode(t)).replace(/-/g, '+').replace(/_/g, '/');
   }
 
+  /* ringkasan keadaan penerbitan, ditampilkan di tab Atur */
+  /* ubah kode kesalahan jadi kalimat yang dimengerti pengurus */
+  function pesanGalat(kode, pendek) {
+    var m = String(kode || '');
+    if (m === 'BELUMDIATUR') return pendek ? 'Pengaturan belum lengkap' : 'Nama pengguna, repositori, dan token harus diisi dulu';
+    if (m === 'TOKEN') return pendek ? 'Token ditolak' : 'Token ditolak — pastikan token benar dan belum kedaluwarsa';
+    if (m === 'TOLAK') return pendek ? 'Token tak punya izin tulis' : 'Token tidak punya izin menulis ke repositori itu (perlu izin Contents: Read and write)';
+    if (m === 'JARINGAN') return pendek ? 'Tidak ada internet' : 'Tidak ada koneksi internet';
+    if (/Not Found/i.test(m)) return pendek ? 'Repositori tidak ditemukan' : 'Repositori tidak ditemukan — periksa nama pengguna & repositori';
+    return pendek && m.length > 38 ? m.slice(0, 36) + '…' : m;
+  }
+
+  function statusTerbit() {
+    var s = DB.set, baris = [];
+    baris.push('<div class="kv"><span>Terakhir terbit</span><b>' +
+      (s.webTerbit ? esc(waktuSingkat(s.webTerbit)) : '<span style="color:var(--amb)">belum pernah</span>') + '</b></div>');
+
+    var alasan = alasanTerbit();
+    var pesan, warna = 'var(--grn)';
+    if (alasan === 'ALAMAT') { pesan = 'Alamat situs RT belum diisi'; warna = 'var(--amb)'; }
+    else if (alasan === 'REPO') { pesan = 'Nama pengguna / repositori belum diisi'; warna = 'var(--amb)'; }
+    else if (alasan === 'TOKEN') { pesan = 'Token GitHub belum diisi'; warna = 'var(--amb)'; }
+    else if (alasan === 'SAKELAR') { pesan = 'Sakelar Terbitkan otomatis masih mati'; warna = 'var(--amb)'; }
+    else if (alasan === 'BERKALA') { pesan = 'Hanya terbit saat kirim laporan'; warna = 'var(--mut)'; }
+    else if (alasan === 'LURING') { pesan = 'Tidak ada internet — menunggu sinyal'; warna = 'var(--amb)'; }
+    else if (s.webGalat) { pesan = 'Gagal: ' + pesanGalat(s.webGalat, true) + ' — dicoba lagi otomatis'; warna = 'var(--red)'; }
+    else if (tandaData() === s.webTanda) pesan = 'Semua perubahan sudah terbit';
+    else {
+      var m = Math.ceil(jedaTerbit() / 60000);
+      pesan = m > 0 ? 'Ada perubahan baru — terbit ' + m + ' menit lagi' : 'Ada perubahan baru — segera terbit';
+      warna = 'var(--blu)';
+    }
+    baris.push('<div class="kv"><span>Keadaan</span><b style="color:' + warna + ';text-align:right">' + esc(pesan) + '</b></div>');
+    return baris.join('');
+  }
+
+  /* ---------- penerbitan berkala selama ronda berjalan ----------
+     Supaya halaman warga ikut hidup saat jimpitan sedang berjalan, bukan hanya
+     waktu laporan dikirim. Dibatasi per jangka waktu karena GitHub Pages hanya
+     membangun ulang situs sekitar 10 kali per jam. */
+
+  var _terbitTimer = null, _terbitJalan = false;
+
+  /* sidik isi data — supaya tidak mengirim ulang kalau tidak ada yang berubah */
+  function tandaData() {
+    var ts = function (a) { return a.length ? (a[a.length - 1].ts || a.length) : 0; };
+    return DB.rumah.length + '.' + DB.setor.length + '.' + DB.kas.length + '.' + DB.lunas.length +
+      '.' + (DB.jaga || []).length + '.' + ts(DB.setor) + '.' + ts(DB.kas) + '.' + ts(DB.lunas) +
+      '.' + ts(DB.jaga || []);
+  }
+
+  /* alasan kenapa penerbitan otomatis belum jalan — dipakai juga oleh layar diagnosa */
+  function alasanTerbit() {
+    if (!alamatWarga()) return 'ALAMAT';
+    if (!DB.set.ghUser || !DB.set.ghRepo) return 'REPO';
+    if (!DB.set.ghToken) return 'TOKEN';
+    if (!DB.set.autoTerbit) return 'SAKELAR';
+    if (!Number(DB.set.terbitTiap)) return 'BERKALA';
+    if (navigator.onLine === false) return 'LURING';
+    return '';
+  }
+
+  function jedaTerbit() {
+    var menit = Number(DB.set.terbitTiap) || 0;
+    if (!menit) return -1;
+    var akhir = DB.set.webTerbit ? new Date(DB.set.webTerbit).getTime() : 0;
+    return Math.max(0, akhir + menit * 60000 - Date.now());
+  }
+
+  function jadwalTerbit() {
+    if (alasanTerbit()) return;
+    if (tandaData() === DB.set.webTanda) return;      /* belum ada perubahan baru */
+    var jeda = jedaTerbit();
+    if (jeda < 0) return;
+    clearTimeout(_terbitTimer);
+    _terbitTimer = setTimeout(jalankanTerbit, jeda + 400);
+  }
+
+  function jalankanTerbit() {
+    if (_terbitJalan) return;
+    if (alasanTerbit()) return;
+    var tanda = tandaData();
+    if (tanda === DB.set.webTanda) return;
+    _terbitJalan = true;
+    terbitkanWeb(S.tgl).then(function (h) {
+      _terbitJalan = false;
+      if (h.ok) {
+        DB.set.webTanda = tanda; DB.set.webGalat = '';
+        simpan();
+        if (S.tab === 'atur') render();
+      } else {
+        DB.set.webGalat = h.pesan; simpan();
+        if (S.tab === 'atur') render();
+        clearTimeout(_terbitTimer);
+        _terbitTimer = setTimeout(jalankanTerbit, 5 * 60000);   /* coba lagi 5 menit lagi */
+      }
+    });
+  }
+
+  /* kembali ada sinyal → kirim yang tertunda */
+  window.addEventListener('online', function () { setTimeout(jadwalTerbit, 1500); });
+
   /* dorong laporan ke repositori GitHub (opsional) */
   function terbitkanWeb(tgl) {
     var st = DB.set;
@@ -1166,7 +1655,7 @@
       'Accept': 'application/vnd.github+json',
       'Content-Type': 'application/json'
     };
-    var isi = b64teks(JSON.stringify(snapshotWarga(tgl)));
+    var isi = b64teks(JSON.stringify(snapshotWarga(tgl, true)));
 
     return fetch(api + '?ref=' + encodeURIComponent(cabang) + '&t=' + Date.now(), { headers: hdr })
       .then(function (r) {
@@ -1828,8 +2317,33 @@
     },
 
     /* --- laporan --- */
-    kirimWaHarian: function () { pratinjauKirim('Laporan ' + tglPendek(S.tgl), lapHarian(S.tgl), S.tgl); },
-    kirimWaHarianRekap: function () { pratinjauKirim('Laporan ' + tglPendek(S.rekapTgl), lapHarian(S.rekapTgl), S.rekapTgl); },
+    kirimWaHarian: function () {
+      tanyaPetugasLalu(S.tgl, function () { pratinjauKirim('Laporan ' + tglPendek(S.tgl), lapHarian(S.tgl), S.tgl); });
+    },
+    kirimWaHarianRekap: function () {
+      tanyaPetugasLalu(S.rekapTgl, function () { pratinjauKirim('Laporan ' + tglPendek(S.rekapTgl), lapHarian(S.rekapTgl), S.rekapTgl); });
+    },
+    editJaga: function () { sheetPetugas(S.tgl, null); },
+    editJagaTgl: function (tgl) { sheetPetugas(tgl, null); },
+    jagaTambah: function (i) {
+      var nm = _namaJaga[Number(i)]; if (!nm) return;
+      var k = $('#jKoor'), r = $('#jRegu'); if (!r) return;
+      if (k && !k.value.trim()) { k.value = nm; vib(20); return; }   /* koordinator masih kosong → isi itu dulu */
+      var ada = pisahNama(r.value);
+      if (ada.indexOf(nm) >= 0 || (k && k.value.trim() === nm)) return;
+      ada.push(nm); r.value = ada.join(', '); vib(20);
+    },
+    jagaSimpan: function () {
+      var k = $('#jKoor'), r = $('#jRegu');
+      simpanJaga(_jagaTgl, k ? k.value : '', r ? pisahNama(r.value) : []);
+      var go = window.__lanjutKirim; window.__lanjutKirim = null;
+      if (go) { go(); return; }                 /* layar diganti pratinjau laporan */
+      tutupSheet(); render(); toast('Petugas ronda disimpan');
+    },
+    jagaLewati: function () {
+      var go = window.__lanjutKirim; window.__lanjutKirim = null;
+      if (go) go(); else tutupSheet();
+    },
     kirimWaBulanan: function () { pratinjauKirim('Rekap ' + namaBulan(S.bulan), lapBulanan(S.bulan), tglTerakhirBulan(S.bulan)); },
     kirimWaPerRumah: function () { pratinjauKirim('Rekap per rumah', lapPerRumah(S.bulan), tglTerakhirBulan(S.bulan)); },
     kirimWaKas: function () { pratinjauKirim('Laporan Kas', lapKas(), S.tgl); },
@@ -2030,6 +2544,79 @@
       }
     },
 
+    pasangPin: function (wajib) {
+      var ganti = kunciAktif() && wajib !== true;
+      sheet(ganti ? 'Ganti PIN petugas' : 'Pasang PIN petugas',
+        (ganti ? '<div class="field"><label>PIN sekarang</label>' +
+          '<input class="inp" id="pinLama" type="password" inputmode="numeric" maxlength="8" placeholder="••••"></div>' : '') +
+        '<div class="field"><label>PIN baru (4–8 angka)</label>' +
+        '<input class="inp" id="pinBaru" type="password" inputmode="numeric" maxlength="8" placeholder="••••"></div>' +
+        '<div class="field"><label>Ulangi PIN baru</label>' +
+        '<input class="inp" id="pinUlang" type="password" inputmode="numeric" maxlength="8" placeholder="••••"></div>' +
+        '<p class="note" style="margin-top:0">Pakai angka yang mudah diingat seluruh petugas ronda, ' +
+        'tapi jangan tanggal lahir ketua RT. PIN tidak disimpan apa adanya — yang disimpan hanya sidiknya.</p>' +
+        '<button class="btn btn-primary btn-block" data-act="simpanPin">Simpan PIN</button>' +
+        '<button class="btn btn-block" style="margin-top:9px" data-act="tutupSheet">Batal</button>');
+    },
+    simpanPin: function () {
+      var lama = $('#pinLama') ? $('#pinLama').value : null;
+      var baru = ($('#pinBaru') && $('#pinBaru').value || '').trim();
+      var ulang = ($('#pinUlang') && $('#pinUlang').value || '').trim();
+      if (!/^[0-9]{4,8}$/.test(baru)) { toast('PIN harus 4–8 angka'); return; }
+      if (baru !== ulang) { toast('Ulangan PIN belum sama'); return; }
+      var cek = (lama === null) ? Promise.resolve(true)
+        : sidik(lama).then(function (h) { return h === DB.set.pinHash; });
+      cek.then(function (boleh) {
+        if (!boleh) { toast('PIN sekarang salah'); return; }
+        var kode = kodePulih();
+        Promise.all([sidik(baru), sidik(kode)]).then(function (h) {
+          DB.set.pinHash = h[0]; DB.set.pinPulih = h[1];
+          /* hanya buka sesi saat ini — supaya PIN benar-benar ditanya saat aplikasi dibuka lagi */
+          simpan(); tandaiTerbuka(false); render();
+          sheet('PIN aktif ✔',
+            '<p style="margin-top:0;line-height:1.7">Mulai sekarang aplikasi minta PIN tiap kali dibuka.</p>' +
+            '<div class="card" style="text-align:center">' +
+            '<div class="l" style="color:var(--mut);font-size:12px;letter-spacing:.6px">KODE PEMULIHAN</div>' +
+            '<div style="font:700 25px/1.4 ui-monospace,monospace;letter-spacing:2px;color:var(--grn)">' + kode + '</div></div>' +
+            '<p class="note">Catat kode ini di buku kas RT atau simpan di tempat aman. ' +
+            'Kode inilah satu-satunya jalan membuka aplikasi kalau PIN lupa. Kode hanya ditampilkan sekarang.</p>' +
+            '<button class="btn" style="width:100%" data-act="salinKode" data-id="' + kode + '">Salin kode</button>' +
+            '<button class="btn btn-primary btn-block" style="margin-top:9px" data-act="tutupSheet">Sudah saya catat</button>');
+        });
+      });
+    },
+    salinKode: function (kode) { salinTeks(kode || '', 'Kode pemulihan disalin'); },
+    kodePulihBaru: function () {
+      var kode = kodePulih();
+      sidik(kode).then(function (h) {
+        DB.set.pinPulih = h; simpan();
+        sheet('Kode pemulihan baru',
+          '<div class="card" style="text-align:center">' +
+          '<div style="font:700 25px/1.4 ui-monospace,monospace;letter-spacing:2px;color:var(--grn)">' + kode + '</div></div>' +
+          '<p class="note">Kode lama otomatis tidak berlaku lagi. Catat yang baru ini.</p>' +
+          '<button class="btn" style="width:100%" data-act="salinKode" data-id="' + kode + '">Salin kode</button>' +
+          '<button class="btn btn-primary btn-block" style="margin-top:9px" data-act="tutupSheet">Sudah saya catat</button>');
+      });
+    },
+    matikanPin: function () {
+      sheet('Matikan kunci PIN',
+        '<div class="field"><label>Masukkan PIN sekarang</label>' +
+        '<input class="inp" id="pinLama" type="password" inputmode="numeric" maxlength="8" placeholder="••••"></div>' +
+        '<p class="note" style="margin-top:0">Setelah dimatikan, siapa pun yang memegang HP ini bisa langsung membuka catatan jimpitan.</p>' +
+        '<button class="btn btn-danger btn-block" data-act="matikanPinYa">Ya, matikan kunci</button>' +
+        '<button class="btn btn-block" style="margin-top:9px" data-act="tutupSheet">Batal</button>');
+    },
+    matikanPinYa: function () {
+      var lama = ($('#pinLama') && $('#pinLama').value || '');
+      sidik(lama).then(function (h) {
+        if (h !== DB.set.pinHash) { toast('PIN salah'); return; }
+        DB.set.pinHash = ''; DB.set.pinPulih = '';
+        try { sessionStorage.removeItem(K_SESI); localStorage.removeItem(K_SAMPAI); } catch (e) { }
+        simpan(); tutupSheet(); render(); toast('Kunci PIN dimatikan');
+      });
+    },
+    kunciSekarang: function () { kunciLagi(); },
+
     salinLinkWarga: function () {
       toast('Menyiapkan tautan…');
       linkWarga(S.tgl).then(function (u) { if (u) salinTeks(u, 'Tautan laporan disalin'); });
@@ -2050,16 +2637,60 @@
         else bukaURL('https://wa.me/?text=' + encodeURIComponent(t));
       });
     },
+    periksaTerbit: function () {
+      var s = DB.set;
+      function baris(okt, judul, ket) {
+        return '<div class="li"><div class="av" style="background:' +
+          (okt ? 'var(--grn-bg);color:var(--grn)' : 'var(--amb-bg);color:var(--amb)') + ';border-color:transparent">' +
+          (okt ? '✓' : '!') + '</div><div class="mid"><b>' + judul + '</b>' +
+          (ket ? '<small>' + esc(ket) + '</small>' : '') + '</div></div>';
+      }
+      var h = '<div class="card">' +
+        baris(!!alamatWarga(), 'Alamat situs RT', alamatWarga() || 'belum diisi') +
+        baris(!!(s.ghUser && s.ghRepo), 'Repositori GitHub', (s.ghUser && s.ghRepo) ? s.ghUser + '/' + s.ghRepo : 'belum diisi') +
+        baris(!!s.ghToken, 'Token GitHub', s.ghToken ? 'terisi (' + s.ghToken.length + ' huruf)' : 'belum diisi') +
+        baris(!!s.autoTerbit, 'Sakelar Terbitkan otomatis', s.autoTerbit ? 'hidup' : 'masih mati') +
+        baris(!!Number(s.terbitTiap), 'Perbarui berkala',
+          Number(s.terbitTiap) ? 'tiap ' + s.terbitTiap + ' menit' : 'hanya saat kirim laporan') +
+        baris(navigator.onLine !== false, 'Internet', navigator.onLine === false ? 'tidak ada sinyal' : 'tersambung') +
+        '</div>';
+      if (s.webGalat) h += '<p class="note" style="color:var(--red)">Kesalahan terakhir: ' + esc(pesanGalat(s.webGalat)) + '</p>';
+      h += '<p class="note">Sesudah berhasil terbit, GitHub masih perlu <b>±1 menit</b> membangun ulang situs ' +
+        'sebelum halaman warga berubah. Jadi kalau baru saja terbit lalu halaman masih lama, tunggu sebentar lalu muat ulang.</p>' +
+        '<button class="btn btn-primary btn-block" data-act="ujiTerbit">Uji kirim sekarang</button>' +
+        '<button class="btn btn-block" style="margin-top:9px" data-act="tutupSheet">Tutup</button>';
+      sheet('Periksa sambungan web', h);
+    },
+    ujiTerbit: function () {
+      toast('Menguji…');
+      terbitkanWeb(S.tgl).then(function (h) {
+        if (h.ok) {
+          DB.set.webTanda = tandaData(); DB.set.webGalat = ''; simpan(); render();
+          sheet('Berhasil ✔',
+            '<p style="margin-top:0;line-height:1.7">Laporan berhasil dikirim ke repositori GitHub. ' +
+            'Tunggu <b>±1 menit</b>, lalu buka halaman warga — isinya sudah yang terbaru.</p>' +
+            '<button class="btn btn-primary btn-block" data-act="tutupSheet">Mengerti</button>');
+        } else {
+          var m = pesanGalat(h.pesan);
+          DB.set.webGalat = h.pesan; simpan();
+          sheet('Belum berhasil',
+            '<p style="margin-top:0;line-height:1.7">' + esc(m) + '</p>' +
+            '<p class="note">Tautan laporan ke grup WA tetap bisa dipakai seperti biasa — cara itu tidak butuh token.</p>' +
+            '<button class="btn btn-block" data-act="tutupSheet">Tutup</button>');
+        }
+      });
+    },
+
     terbitSekarang: function () {
       toast('Menerbitkan…');
+      var tanda = tandaData();
       terbitkanWeb(S.tgl).then(function (h) {
-        if (h.ok) { render(); toast('✔ Laporan terbit di halaman warga'); return; }
-        var m = h.pesan;
-        if (m === 'BELUMDIATUR') m = 'Nama pengguna, repositori, dan token harus diisi dulu';
-        else if (m === 'TOKEN') m = 'Token ditolak — pastikan token benar dan belum kedaluwarsa';
-        else if (m === 'TOLAK') m = 'Token tidak punya izin menulis ke repositori itu';
-        else if (m === 'JARINGAN') m = 'Tidak ada koneksi internet';
-        else if (/Not Found/i.test(m)) m = 'Repositori tidak ditemukan — periksa nama pengguna & repositori';
+        if (h.ok) {
+          DB.set.webTanda = tanda; DB.set.webGalat = ''; simpan(); render();
+          toast('✔ Laporan terbit di halaman warga'); return;
+        }
+        DB.set.webGalat = h.pesan; simpan(); render();
+        var m = pesanGalat(h.pesan);
         sheet('Gagal menerbitkan',
           '<p style="margin-top:0;line-height:1.7">' + esc(m) + '</p>' +
           '<p class="note">Tautan laporan tetap bisa dikirim ke grup WA seperti biasa — ' +
@@ -2287,8 +2918,12 @@
 
   /* --- mulai --- */
   render();
+  if (FITUR_KUNCI && !sesiTerbuka()) tampilkanGembok();
   if (!DB.set.siap && !DB.rumah.length) setTimeout(sambutan, 420);
   else if (IOS && !TERPASANG && !DB.set.hideIOS) setTimeout(panduanPasangIOS, 700);
+
+  /* kirim perubahan yang belum sempat terbit (mis. tadi malam tidak ada sinyal) */
+  setTimeout(jadwalTerbit, 3500);
 
   /* cadangan otomatis harian ke Google Drive (Android) */
   setTimeout(cadangDiamDiam, 2500);
